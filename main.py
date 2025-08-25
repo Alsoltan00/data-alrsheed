@@ -19,7 +19,7 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max file size
 # Enable CORS for all routes
 CORS(app)
 
-# Database configuration for PythonAnywhere
+# Database configuration
 database_path = os.path.join(os.path.dirname(__file__), "data", "app.db")
 os.makedirs(os.path.dirname(database_path), exist_ok=True)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{database_path}"
@@ -277,7 +277,6 @@ def search_inventory(current_user):
         
         for item in items:
             item_data = item.data
-            # Search in all values of the item data
             for key, value in item_data.items():
                 if search_term.lower() in str(value).lower():
                     results.append({
@@ -285,7 +284,7 @@ def search_inventory(current_user):
                         'data': item_data,
                         'created_at': item.created_at.isoformat() if item.created_at else None
                     })
-                    break  # Avoid duplicate entries for the same item
+                    break  
         
         return jsonify({
             'results': results,
@@ -310,14 +309,11 @@ def upload_inventory(current_user):
         if file and file.filename.endswith(('.xlsx', '.xls')):
             filename = secure_filename(file.filename)
             
-            # Read Excel file
             df = pd.read_excel(file)
             
-            # Clear existing data
             InventoryItem.query.delete()
             InventoryMeta.query.delete()
             
-            # Store metadata
             headers = df.columns.tolist()
             meta = InventoryMeta(
                 headers=headers,
@@ -326,10 +322,8 @@ def upload_inventory(current_user):
             )
             db.session.add(meta)
             
-            # Store data
             for _, row in df.iterrows():
                 item_data = row.to_dict()
-                # Convert NaN values to None
                 for key, value in item_data.items():
                     if pd.isna(value):
                         item_data[key] = None
@@ -391,7 +385,7 @@ with app.app_context():
         db.session.commit()
         print("Default admin user created: admin/admin2025")
 
+# للتشغيل المحلي فقط
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
-
+    app.run(host="127.0.0.1", port=port, debug=True)
